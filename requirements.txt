@@ -2,5 +2,5 @@
 # matplotlib, opencv etc. are preinstalled; do not pin or reinstall them.
 # segmentation-models-pytorch, grad-cam, statsmodels are added in later deliverables.
 timm==1.0.11
-imagehash==4.3.1
+imagehash==4.3.2
 ptflops==0.7.4
