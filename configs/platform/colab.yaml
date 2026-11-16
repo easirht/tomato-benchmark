@@ -1,0 +1,5 @@
+# Colab free tier disconnects unpredictably (often 2-4h). Keep sessions short.
+checkpoint:
+  max_wall_hours: 3.0
+train:
+  num_workers: 2

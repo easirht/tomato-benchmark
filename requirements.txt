@@ -1,0 +1,25 @@
+# Core stack. torch / torchvision are NOT pinned here on purpose: Kaggle and Colab ship a
+# matching CUDA build, and reinstalling torch can break the GPU. Their exact versions are
+# recorded automatically in results/runs.csv and in env_snapshot.json for every run.
+# The pins below were checked to exist on PyPI; after your FIRST successful Kaggle run, run
+#   pip freeze > requirements.lock.txt
+# and commit it: that file (not this one) is the true reproducibility record.
+timm==1.0.11
+segmentation-models-pytorch==0.3.4
+transformers==4.46.3
+albumentations==1.4.18
+opencv-python-headless==4.10.0.84
+imagehash==4.3.1
+scikit-learn==1.5.2
+scikit-image==0.24.0
+pandas==2.2.3
+scipy==1.14.1
+statsmodels==0.14.4
+PyYAML==6.0.2
+tqdm==4.66.5
+matplotlib==3.9.2
+seaborn==0.13.2
+tabulate==0.9.0
+psutil==6.1.0
+ptflops==0.7.4
+grad-cam==1.5.4

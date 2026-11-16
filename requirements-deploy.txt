@@ -1,0 +1,5 @@
+# Only needed for Deliverable 8 (demo / ONNX). Optional: wandb for experiment tracking.
+onnx==1.17.0
+onnxruntime==1.20.1
+gradio==5.7.1
+# wandb==0.18.5

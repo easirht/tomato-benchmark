@@ -1,0 +1,10 @@
+# Tiny debug config: use to check the pipeline end to end in a few minutes.
+exp_name: smoke
+train:
+  epochs: 2
+  batch_size: 16
+  early_stopping: {metric: val_macro_f1, patience: 2}
+protocol:
+  seeds_main: [42]
+  models_main:
+    - {name: resnet50, family: cnn}

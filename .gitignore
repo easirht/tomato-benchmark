@@ -1,0 +1,11 @@
+data/*
+!data/.gitkeep
+runs/*
+!runs/.gitkeep
+work/
+*.pt
+*.pth
+*.tmp
+__pycache__/
+.ipynb_checkpoints/
+.env

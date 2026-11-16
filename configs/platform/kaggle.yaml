@@ -1,0 +1,5 @@
+# Kaggle: ~12h max session, GPU quota ~30h/week. Stop with margin and checkpoint every epoch.
+checkpoint:
+  max_wall_hours: 8.0
+train:
+  num_workers: 2

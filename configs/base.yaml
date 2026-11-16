@@ -1,0 +1,83 @@
+# ============================================================================
+# base.yaml : defaults shared by ALL experiments.
+# Anything here that defines the experiment is part of the config hash.
+# DECISIONS BELOW ARE FIXED BEFORE ANY RESULTS (see PROJECT_PLAN.md). Commit this file to git
+# before the first training run; do not edit seeds/splits afterwards.
+# ============================================================================
+project: tomato-benchmark
+exp_name: base
+
+paths:                    # null -> auto-filled per platform (Kaggle/Colab/local)
+  data_root: null
+  work_root: null
+  persist_dirs: []        # e.g. ["/kaggle/input/tomato-ckpts"] to resume across Kaggle sessions
+
+protocol:
+  # Seeds are decided NOW, before any result. Never change them after seeing results.
+  seeds_main: [42, 43, 44, 45, 46]        # 5 seeds (1-month scope)
+  seeds_reserve: [47, 48, 49, 50, 51]     # used only if compute allows; fixed now too
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+    group_aware: true      # near-duplicate groups never cross splits (built in Deliverable 3)
+    stratified: true
+    seed: 1234             # ONE split for the whole project
+  # Main-benchmark models (timm names). Hyper-parameters are identical across models.
+  models_main:
+    - {name: resnet50,                       family: cnn}
+    - {name: efficientnet_b0,                family: cnn}
+    - {name: convnext_tiny,                  family: cnn}
+    - {name: deit_small_patch16_224,         family: transformer}
+    - {name: swin_tiny_patch4_window7_224,   family: transformer}
+    - {name: mobilevit_s,                    family: hybrid}
+  models_optional:          # only if time allows (documented as such in the paper)
+    - {name: efficientnet_b3,                family: cnn}
+    - {name: mobilenetv3_large_100,          family: cnn}
+    - {name: vit_base_patch16_224,           family: transformer}
+
+data:
+  num_classes: 10
+  image_size: 224           # main benchmark; 320/384 only for the resolution ablation
+  # Canonical short names. Folder-name -> short-name mapping is built and verified in Deliverable 3.
+  class_names: [bacterial_spot, early_blight, late_blight, leaf_mold, septoria_leaf_spot,
+                spider_mites, target_spot, yellow_leaf_curl_virus, mosaic_virus, healthy]
+  healthy_class: healthy    # binary label is derived: healthy=0, everything else=1
+  mean: [0.485, 0.456, 0.406]
+  std:  [0.229, 0.224, 0.225]
+
+model:                      # filled per run by iter_runs() / overrides
+  name: resnet50
+  family: cnn
+  pretrained: true          # ImageNet weights (scratch / linear-probe variants are separate experiments)
+
+train:
+  epochs: 100               # max; early stopping usually ends sooner
+  early_stopping:
+    metric: val_macro_f1    # selection ALWAYS on validation macro-F1
+    patience: 10
+  optimizer: adamw
+  lr: 0.0002                # PLACEHOLDER: fixed in Deliverable 4 by a small validation-only check
+  weight_decay: 0.05
+  warmup_epochs: 3
+  scheduler: cosine
+  label_smoothing: 0.1
+  loss: ce_class_weighted   # ce_class_weighted | focal
+  batch_size: 32
+  amp: true                 # mixed precision
+  num_workers: 2
+  grad_clip: 1.0
+  deterministic: false
+
+run:
+  seed: 42                  # overridden per run
+
+checkpoint:
+  save_every_epoch: true
+  max_wall_hours: 8.0       # graceful stop before the session limit (platform files override)
+  safety_minutes: 10
+
+logging:
+  results_csv: runs.csv     # inside paths.results_dir
+  tensorboard: true
+  wandb: false

@@ -1,0 +1,6 @@
+# Local CPU/GPU machine (code editing, smoke tests).
+checkpoint:
+  max_wall_hours: 100
+train:
+  num_workers: 0
+  amp: false
