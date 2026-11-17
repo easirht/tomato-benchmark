@@ -11,7 +11,10 @@ fixed BEFORE any model is trained:
      the data; the largest "ordinary" groups seen were ~30) is a chaining artefact. It is re-split by raising
      the threshold in steps of 0.005 inside that group only, until all pieces are <= max-group.
      Edges cut this way are counted and reported ("severed edges").
-  3. Group-aware split with StratifiedGroupKFold (20 folds -> 14/3/3 = 70/15/15, seed from config).
+  3. Group-aware split with StratifiedGroupKFold. 40 folds, assigned 22/9/9 to train/val/test BEFORE the purge
+     (55/22.5/22.5 %). Reason: the first v2 run (20 folds, 14/3/3) showed the purge moves about a third of the
+     val/test images to train, ending at 79.7/9.9/10.3 %; the pre-purge shares were raised so that the FINAL
+     split lands near the nominal 70/15/15. This choice uses only data structure, no model result.
   4. PURGE (exact, over ALL image pairs, not just top-k): any val/test image whose cosine to some train image
      is >= T0 (and any val image whose cosine to a test image is >= T0) is moved to train. Repeats until no
      such pair remains. So the final split has NO val/test image with a >= T0 near-copy in train, by
@@ -156,15 +159,17 @@ def main():
     ap.add_argument("--no-purge", action="store_true")
     ap.add_argument("--diag", type=float, nargs="+", default=[0.97, 0.95, 0.92, 0.90, 0.88])
     ap.add_argument("--k", type=int, default=10)
-    ap.add_argument("--folds", type=int, default=20)
+    ap.add_argument("--folds", type=int, default=40)
+    ap.add_argument("--pre-folds", type=int, nargs=3, default=[22, 9, 9],
+                    help="folds given to train/val/test before the purge (must sum to --folds)")
     ap.add_argument("--out-name", default="split_v2")
     args = ap.parse_args()
 
     cfg = load_config(REPO / "configs", repo_root=REPO)
     sp = cfg["protocol"]["split"]
     seed = int(sp["seed"])
-    n_tr, n_va, n_te = [round(sp[k] * args.folds) for k in ("train", "val", "test")]
-    assert n_tr + n_va + n_te == args.folds
+    n_tr, n_va, n_te = args.pre_folds
+    assert n_tr + n_va + n_te == args.folds, "--pre-folds must sum to --folds"
 
     roots = default_roots(REPO)
     d3 = Path(args.d3_dir) if args.d3_dir else Path(roots["work_root"]) / "results" / "d3"
@@ -240,6 +245,10 @@ def main():
     tr_r, rest = train_test_split(idx, test_size=0.30, stratify=y, random_state=seed)
     va_r, te_r = train_test_split(rest, test_size=0.5, stratify=y[rest], random_state=seed)
     tr_g, va_g, te_g = (idx[df.split.values == s] for s in ("train", "val", "test"))
+    msim = np.full(n, np.nan, dtype=np.float32)          # per-image similarity to train (val/test only)
+    msim[va_g] = max_sim(E, va_g, tr_g, device)
+    msim[te_g] = max_sim(E, te_g, tr_g, device)
+    df["max_sim_train"] = msim
     print("\n=== LEAKAGE: max cosine of each val/test image to ANY train image (no model trained) ===")
     res = {}
     for name, q, t in [("random split - val", va_r, tr_r), ("random split - test", te_r, tr_r),
@@ -252,7 +261,7 @@ def main():
 
     # ---- save
     cols = ["image_id", "rel_path", "filename", "class_name", "label", "binary_label",
-            "group_id", "group_size", "group_thr", "split", "moved_by_purge"]
+            "group_id", "group_size", "group_thr", "split", "moved_by_purge", "max_sim_train"]
     out_csv = d3 / f"{args.out_name}.csv"
     df[cols].to_csv(out_csv, index=False)
     repo_splits = Path(cfg["paths"]["splits_dir"]); repo_splits.mkdir(parents=True, exist_ok=True)
