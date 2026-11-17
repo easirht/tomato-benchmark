@@ -1,6 +1,6 @@
 # PROJECT_PLAN.md  (read this first when resuming in a new session)
 
-Last updated: Deliverable 2. Nothing below is a result; no experiment has been run.
+Last updated: Deliverable 3, B1 run on real data; B2 script (groups + split + leakage report) written, not yet run on real data. Nothing below is a result; no experiment has been run.
 
 ## 1. Project
 Tomato-only, leakage-controlled benchmark of CNN / ViT / hybrid models for leaf disease
@@ -69,7 +69,7 @@ paper and report text in English. User is the author; AI-assisted writing must b
 |---|---|---|
 | 1 | Literature gap, novelty, formulation | done |
 | 2 | Folder structure, env, YAML config, checkpoint/resume, this file | done (code tested on CPU only) |
-| 3 | Dataset download, count check, cleaning, near-duplicate detection, group-aware split, EDA | next |
+| 3 | Dataset download, count check, cleaning, near-duplicate detection, group-aware split, EDA | IN PROGRESS. Step A DONE on real data (scripts/d3_01_build_manifest.py). Step B1 (scripts/d3_02_near_duplicates.py) DONE on real data (ResNet50 embeddings, Kaggle T4). Step B2 (scripts/d3_03_groups_and_split.py: component diagnostics, StratifiedGroupKFold 70/15/15, residual-leakage report, EDA) written and tested on synthetic data only; next: run on real data |
 | 4 | Baseline classification notebook + scripts | pending |
 | 5 | Segmentation + severity (annotation workflow) | pending |
 | 6 | Enhancement / robustness / low-data / resolution / lab-to-field configs + GPU estimates | pending |
@@ -85,8 +85,53 @@ paper and report text in English. User is the author; AI-assisted writing must b
 3. GitHub repo created? (needed for Kaggle clone and reproducibility package).
 4. Placeholder hyper-parameters in configs/base.yaml (lr 2e-4, wd 0.05, bs 32) must be fixed in
    Deliverable 4 using VALIDATION data only, then frozen before the full benchmark.
-5. PlantVillage version/folder names on Kaggle are unverified; class-name mapping and counts are
+5. DATASET SOURCE (observed on the Kaggle page, NOT yet verified by script): Kaggle 'PlantVillage Dataset'
+   (2.18 GB; folders color / grayscale / segmented; we use `color` only). Tomato folder counts read from the
+   page preview: bacterial spot 2127, early blight 1000, late blight 1909, leaf mold 952, septoria 1771,
+   spider mites 1676, target spot 1404, YLCV 5357, mosaic 373, healthy 1591 -> 18,160 images, imbalance
+   about 14.4x (YLCV vs mosaic). This DIFFERS from the brief's from-memory numbers (YLCV ~3209, total ~16,000,
+   imbalance ~8.6x); the brief's numbers are superseded once the script confirms these. Dataset owner/URL
+   and LICENCE: still to be recorded from the dataset page. Leaf IDs are NOT in this Kaggle version; the original
+   PlantVillage GitHub repo reportedly has leaf_grouping metadata (VERIFY) -> may be used for the group-aware split.
+   Old note: class-name mapping and counts are
    verified by script in Deliverable 3 (the counts in the original brief were from memory).
+
+
+## 6b. Deliverable 3 findings so far (REAL data, step A; from the user's Kaggle run)
+- Counts VERIFIED by script: 18,160 tomato images, 10 classes (bacterial 2127, early 1000, late 1909, leaf mold 952,
+  septoria 1771, spider mites 1676, target spot 1404, YLCV 5357, mosaic 373, healthy 1591); imbalance 14.36x;
+  0 unreadable; all 256x256 RGB. The brief's from-memory counts (~16,000; 8.6x) are superseded.
+- Dataset has TWO identical copies of `color` (top-level and nested "plantvillage dataset/"); only the top-level
+  /kaggle/input/plantvillage-dataset/color is used (file lists identical, 18,160 each).
+- Exact duplicates: 14 MD5 groups (late blight 8, healthy 6), none across classes. DECISION (fixed now): keep the first
+  file of each group, drop the other 14 -> 18,146 images; list in exact_dup_dropped.csv.
+- Filenames: `<uuid>___<CODE> <number>.JPG`. 20 "source families" after removing the leaf/day suffix. Each family is
+  almost entirely one class (family->class guess accuracy 0.9999). CAUTION: this is partly a naming artefact (codes
+  contain disease abbreviations, e.g. Erly.B, Late.B, YLCV), so it is NOT evidence by itself that a model can
+  shortcut on acquisition source. The real test is behavioural (background-only / source-held-out tests).
+- Classes with >1 family (source-held-out analysis possible): bacterial spot (2), healthy (2), late blight (GHLB* and
+  RS_Late.B), septoria (3), YLCV (3). Single-family classes: early blight, leaf mold, mosaic, spider mites, target spot.
+  Source-held-out analysis = OPTIONAL, decide after the Deliverable 4 baseline (extra compute).
+- Late-blight leaf codes like "GHLB_PS Leaf 23.4 Day" look like leaf-number + sub-image + day -> candidate leaf key
+  (hypothesis, to be tested via image similarity). Other families only have a running photo number.
+- Suspect images (kept, flagged, mention in Limitations; do not delete/relabel without expert confirmation):
+  2 late-blight files with healthy-style code GH_HL (Leaf 173.2, Leaf 170); 3 healthy files with irregular names
+  (CG1.JPG, a Flickr-style numeric name, GH_HL Leaf 380.1JPG.JPG); 4 late-blight files with a trailing " Day N .jpg".
+
+### B1 results on REAL data (ResNet50 ImageNet embeddings, 18,146 images after dropping 14 exact duplicates)
+- Top-1 nearest-neighbour cosine: median 0.896, p90 0.936, p99 0.960 (generic features: all PlantVillage leaves look alike).
+- Unique top-10 pairs by cosine: >=0.99: 0; 0.97-0.99: 19; 0.95-0.97: 479 (1 cross-class); 0.92-0.95: 6,953 (45 cross-class);
+  0.90-0.92: 15,029 (876 cross-class = 5.8%). Cross-class pairs are certainly different leaves, so this rate is a LOWER BOUND
+  of the false-match rate. pHash<=4: 30 pairs, <=8: 331 pairs (among cos>=0.90 pairs).
+- Visual review by the user (12 random pairs per bin, subjective, small sample; 12/12 only implies purity >= ~78% at 95% confidence):
+  same leaf: pHash 0-4 12/12, pHash 5-8 12/12, cos 0.97-0.99 / 0.95-0.97 / 0.92-0.95 / 0.90-0.92 all 12/12;
+  cos 0.88-0.90 4/12, 0.86-0.88 2/12, 0.84-0.86 0/12, 0.80-0.84 4/12, 0.70-0.80 3/12 (non-monotonic -> noisy judgement or
+  same-leaf pairs with rotation/flip/crop that the CNN scores low; UNRESOLVED).
+- Conclusion so far: PlantVillage-tomato contains many photos of the same leaf beyond exact duplicates. PROVISIONAL grouping
+  threshold T=0.90 (cosine); final choice only after B2 diagnostics (watch for one giant chained group). Same-leaf pairs
+  below 0.90 probably exist -> reported as RESIDUAL leakage (max-cosine-to-train, random vs group split) and as a limitation.
+- Possible upgrade if residual leakage looks large: rotation/flip-aware matching (embed 8 dihedral variants) or DINOv2 features.
+- Still open: dataset owner/URL + LICENCE; output of the GitHub leaf_grouping / leaf-map.json check (cell 2).
 
 ## 7. How to resume in a new session
 Paste this file, then say which deliverable to continue. Run `python scripts/smoke_test.py` after
