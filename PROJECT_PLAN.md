@@ -1,6 +1,6 @@
 # PROJECT_PLAN.md  (read this first when resuming in a new session)
 
-Last updated: Deliverable 3, B1 run on real data; B2 script (groups + split + leakage report) written, not yet run on real data. Nothing below is a result; no experiment has been run.
+Last updated: Deliverable 3. B2 v1 run on real data FAILED (giant chained group); B2 v2 script (size-capped groups + purge) written and tested on synthetic data only. Nothing below is a result; no experiment has been run.
 
 ## 1. Project
 Tomato-only, leakage-controlled benchmark of CNN / ViT / hybrid models for leaf disease
@@ -69,7 +69,7 @@ paper and report text in English. User is the author; AI-assisted writing must b
 |---|---|---|
 | 1 | Literature gap, novelty, formulation | done |
 | 2 | Folder structure, env, YAML config, checkpoint/resume, this file | done (code tested on CPU only) |
-| 3 | Dataset download, count check, cleaning, near-duplicate detection, group-aware split, EDA | IN PROGRESS. Step A DONE on real data (scripts/d3_01_build_manifest.py). Step B1 (scripts/d3_02_near_duplicates.py) DONE on real data (ResNet50 embeddings, Kaggle T4). Step B2 (scripts/d3_03_groups_and_split.py: component diagnostics, StratifiedGroupKFold 70/15/15, residual-leakage report, EDA) written and tested on synthetic data only; next: run on real data |
+| 3 | Dataset download, count check, cleaning, near-duplicate detection, group-aware split, EDA | IN PROGRESS. Step A DONE on real data (scripts/d3_01_build_manifest.py). Step B1 (scripts/d3_02_near_duplicates.py) DONE on real data (ResNet50 embeddings, Kaggle T4). Step B2 v2 (scripts/d3_03_groups_and_split.py: capped groups + StratifiedGroupKFold + exact purge + leakage report + EDA) written/tested on synthetic only; next: run v2 on real data |
 | 4 | Baseline classification notebook + scripts | pending |
 | 5 | Segmentation + severity (annotation workflow) | pending |
 | 6 | Enhancement / robustness / low-data / resolution / lab-to-field configs + GPU estimates | pending |
@@ -131,6 +131,20 @@ paper and report text in English. User is the author; AI-assisted writing must b
   threshold T=0.90 (cosine); final choice only after B2 diagnostics (watch for one giant chained group). Same-leaf pairs
   below 0.90 probably exist -> reported as RESIDUAL leakage (max-cosine-to-train, random vs group split) and as a limitation.
 - Possible upgrade if residual leakage looks large: rotation/flip-aware matching (embed 8 dihedral variants) or DINOv2 features.
+
+### B2 v1 on REAL data (abandoned) and the v2 design
+- v1 = single-linkage components at cosine>=0.90: ONE group of 5,830 images (32% of data) containing all 10 classes
+  (YLCV 2279, bacterial 1184, healthy 929, ...) = chaining through generic/hub images, NOT one leaf. Other groups are small
+  (next largest 31, all one class). At T=0.86 the largest component is 14,608 images. Result: split 78.5/10.9/10.6 %
+  instead of 70/15/15, class shares badly off. split_v1.csv is NOT to be used (do not commit it as the project split).
+- v1 leakage numbers (useful, provisional): random stratified split -> 41.0% of test images (39.4% of val) have a train image
+  with cosine>=0.90 (ResNet50 features); mean max-cosine 0.890. Group split v1: 0.0% by construction; 42.5% of test images
+  still have max cosine in [0.88,0.90) -> residual same-leaf risk, to be audited.
+- v2 rules (fixed BEFORE any model training): edges cosine>=T0=0.90; components larger than 100 images are re-split by raising
+  the threshold in steps of 0.005 inside that component; severed edges counted; StratifiedGroupKFold 20 folds -> 14/3/3;
+  then an exact PURGE over all pairs moves any val/test image with a >=0.90 near-copy in train (or any val image near a
+  test image) to train until none remains (verified by assertion). Val/test end slightly below 15% (printed).
+  Expected cost: images in chained regions end up in train. Report the final sizes and how many were moved.
 - Still open: dataset owner/URL + LICENCE; output of the GitHub leaf_grouping / leaf-map.json check (cell 2).
 
 ## 7. How to resume in a new session
