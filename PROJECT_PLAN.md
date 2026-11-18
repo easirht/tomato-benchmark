@@ -1,6 +1,6 @@
 # PROJECT_PLAN.md  (read this first when resuming in a new session)
 
-Last updated: Deliverable 3. B2 v1 run on real data FAILED (giant chained group); B2 v2 script (size-capped groups + purge) written and tested on synthetic data only. Nothing below is a result; no experiment has been run.
+Last updated: Deliverable 3 essentially complete. split_v2 (v2.1 script: size-capped groups + exact purge, 40 folds, pre-purge 22/9/9) ran on real data in a Kaggle commit run (Version 2, 6 min 18 s) and gave 69.3/15.6/15.2 %. split_v2.csv is now on GitHub (splits/split_v2.csv, 3.5 MB, commit 5549287, uploaded via browser) and is FROZEN: never regenerate or edit it. (split_v2_summary was uploaded as .txt; it is JSON, optional rename.) Nothing below is a result; no experiment has been run.
 
 ## 1. Project
 Tomato-only, leakage-controlled benchmark of CNN / ViT / hybrid models for leaf disease
@@ -69,8 +69,8 @@ paper and report text in English. User is the author; AI-assisted writing must b
 |---|---|---|
 | 1 | Literature gap, novelty, formulation | done |
 | 2 | Folder structure, env, YAML config, checkpoint/resume, this file | done (code tested on CPU only) |
-| 3 | Dataset download, count check, cleaning, near-duplicate detection, group-aware split, EDA | IN PROGRESS. Step A DONE on real data (scripts/d3_01_build_manifest.py). Step B1 (scripts/d3_02_near_duplicates.py) DONE on real data (ResNet50 embeddings, Kaggle T4). Step B2 v2 (scripts/d3_03_groups_and_split.py: capped groups + StratifiedGroupKFold + exact purge + leakage report + EDA) written/tested on synthetic only; next: run v2 on real data |
-| 4 | Baseline classification notebook + scripts | pending |
+| 3 | Dataset download, count check, cleaning, near-duplicate detection, group-aware split, EDA | DONE; split FROZEN on GitHub. Still open (small): dataset URL + licence, optional PlantVillage leaf-map check, dataset datasheet. History: Step A DONE on real data (scripts/d3_01_build_manifest.py). Step B1 (scripts/d3_02_near_duplicates.py) DONE on real data (ResNet50 embeddings, Kaggle T4). Step B2 v2 (scripts/d3_03_groups_and_split.py: capped groups + StratifiedGroupKFold + exact purge + leakage report + EDA) written/tested on synthetic only; next: run v2 on real data |
+| 4 | Baseline classification notebook + scripts | NEXT (GPU needed; start with a short validation-only learning-rate check, then freeze the recipe) |
 | 5 | Segmentation + severity (annotation workflow) | pending |
 | 6 | Enhancement / robustness / low-data / resolution / lab-to-field configs + GPU estimates | pending |
 | 7 | Aggregation: LaTeX tables, plots, stats | pending |
@@ -132,6 +132,37 @@ paper and report text in English. User is the author; AI-assisted writing must b
   below 0.90 probably exist -> reported as RESIDUAL leakage (max-cosine-to-train, random vs group split) and as a limitation.
 - Possible upgrade if residual leakage looks large: rotation/flip-aware matching (embed 8 dihedral variants) or DINOv2 features.
 
+
+### FINAL D3 RESULT: split_v2 (REAL data, Kaggle commit Version 2; all numbers copied from the run log)
+Parameters (fixed): embeddings = timm resnet50 (ImageNet) global-pool, L2-normalised; top-10 neighbour edges; T0 = 0.90;
+component cap 100 (refined in steps of 0.005); StratifiedGroupKFold 40 folds, seed 1234, folds 22/9/9 before purge
+(chosen after the first run showed the purge removes ~32% of val/test images); exact purge at cosine >= 0.90 over all pairs.
+- Exact duplicates dropped: 14 -> 18,146 images. 141,773 unique top-10 neighbour pairs; 22,469 with cosine >= 0.90.
+- Plain components (single linkage): T=0.97 largest 2; 0.95 largest 98; 0.92 largest 874 (12 mixed-class groups);
+  0.90 largest 5,830 (13 mixed); 0.88 largest 10,877. -> chaining starts around 0.92, hence the cap.
+- Refined groups (cap 100): 13,631 groups, largest 98, p99 size 7, 0 unsplittable; 5,830 images were re-split;
+  severed edges 12,522 of 22,469 (55.7%), all handled by the purge. 49 groups still mix classes (label noise or similar-looking
+  cross-class images; list them in Limitations / check later).
+- Before purge 9,916/4,321/3,909 (54.6/23.8/21.5 %). Purge moved 2,657 images to train (val 1,499, test 1,158) in 6 rounds.
+- FINAL: train 12,573 (69.3%), val 2,822 (15.6%), test 2,751 (15.2%). No group spans two splits. Verified: no val/test image has
+  cosine >= 0.90 to any train image, and none of val to test.
+- Per class train/val/test: bacterial 1721/205/201; early blight 579/213/208; late blight 1132/386/383; leaf mold 552/205/195;
+  septoria 1074/366/331; spider mites 1106/293/277; target spot 919/249/236; YLCV 3927/714/716; mosaic 280/38/55; healthy 1283/153/149.
+  NOTE: val/test class shares differ from train shares (purge removes images with near-copies; test is closer to class-balanced).
+  Use macro-F1, class-weighted loss from TRAIN counts, and bootstrap CIs over test images for per-class metrics (mosaic val/test only 38/55).
+- Leakage without any model (max cosine of each val/test image to ANY train image):
+  random stratified split: val mean 0.890, >=0.90: 39.4%, >=0.88: 64.4%, >=0.86: 81.8%; test: 41.0%, 64.0%, 81.7%.
+  group split + purge: val mean 0.867, >=0.90: 0.0%, >=0.88: 37.7%, >=0.86: 68.9%; test mean 0.867, 0.0%, 38.1%, 68.8%.
+  Headline (state carefully, similarity = ResNet50 cosine, same-leaf validity only spot-checked by eye on 12 pairs/bin):
+  a random split puts a >=0.90 near-copy of about 41% of test images into train.
+  Residual risk: ~38% of test images still have a train neighbour in [0.88,0.90); visual review suggested some of these are the same
+  leaf -> quantify after training with accuracy vs max_sim_train (column saved in split_v2.csv) and, optionally, a manual audit.
+- Pipeline is deterministic enough: Step A and B1 numbers were identical in two independent runs.
+- Limitations to write: similarity from generic ImageNet features; rotated/flipped/cropped same-leaf pairs may be missed; test set excludes
+  images with near-copies in train (less typical than a random draw, but the right target for unseen-leaf generalisation); class proportions
+  differ between train and val/test; PlantVillage has class-specific acquisition sources (family->class guess accuracy 0.9999, partly a
+  naming artefact) so source shortcuts remain possible -> background-only test in Deliverable 4.
+
 ### B2 v1 on REAL data (abandoned) and the v2 design
 - v1 = single-linkage components at cosine>=0.90: ONE group of 5,830 images (32% of data) containing all 10 classes
   (YLCV 2279, bacterial 1184, healthy 929, ...) = chaining through generic/hub images, NOT one leaf. Other groups are small
@@ -146,6 +177,30 @@ paper and report text in English. User is the author; AI-assisted writing must b
   test image) to train until none remains (verified by assertion). Val/test end slightly below 15% (printed).
   Expected cost: images in chained regions end up in train. Report the final sizes and how many were moved.
 - Still open: dataset owner/URL + LICENCE; output of the GitHub leaf_grouping / leaf-map.json check (cell 2).
+
+
+## 6c. Where we stopped (resume here) + practical Kaggle/GitHub lessons
+STATUS (older, superseded by FINAL D3 RESULT above): Deliverable 3 almost done. Real results of the FIRST v2 run (20 folds 14/3/3): refined groups + purge moved 1,643
+images to train; final split 14,466 / 1,803 / 1,877 (79.7/9.9/10.3 %); 0 val/test images with cosine>=0.90 to train (verified by
+assertion); random split baseline: 39-41% of val/test images have a >=0.90 train neighbour; group split still has 37-42% in
+[0.88,0.90) -> residual leakage, to be quantified later with accuracy-vs-max_sim_train bins. mosaic_virus val/test only 33/29
+images (small). PENDING RUN: v2.1 (scripts/d3_03_groups_and_split.py with --pre-folds 22 9 9, --folds 40, column max_sim_train)
+via Kaggle "Save & Run All (Commit)"; first attempt failed ON PURPOSE (guard: the older script was still on GitHub, cost 19 s).
+NEXT STEPS (old list; steps 1-3 are DONE, only step 4 onwards remains): (1) upload latest d3_03 script to GitHub scripts/ (verify with Ctrl+F "pre-folds" on GitHub); (2) run the commit
+notebook (one %%bash cell: clone repo, pip install timm==1.0.11, d3_01, d3_02, d3_03 --out-name split_v2); (3) read FINAL split
+sizes / class table / LEAKAGE table from the version log; (4) download results/d3/split_v2.csv and upload it to GitHub splits/
+(the notebook cannot push to GitHub) -> FREEZE it as the project split; (5) record dataset owner/URL + licence, check the original
+PlantVillage leaf_grouping/leaf-map.json (cell not yet run), decide about own phone images and the report template; then start
+Deliverable 4 (baseline notebook; the background-only sanity test also belongs there because it needs a model).
+KAGGLE FACTS LEARNED: GitHub repo easirht/tomato-benchmark (public). Notebook "PlantVillage Dataset" (copied from another user,
+environment pinned 2025-11-07, input /kaggle/input/plantvillage-dataset/color - the dataset ALSO has a duplicate nested copy,
+ignore it). Changing Accelerator or stopping a session wipes /kaggle/working. Set Accelerator BEFORE starting. CPU-only work
+(B2, tables) can run with Accelerator None; GPU only for embeddings (d3_02) and training. Commit runs ("Save & Run All") keep
+running after the tab is closed and stop by themselves; interactive sessions must be stopped with the power icon. Quota shown
+in Session options (about 0:53 of 30 h used when last seen). Downloading big zips from the Output panel failed for the user:
+keep outputs small (never zip embeddings.npy) and re-generate from scripts instead. GitHub uploads must go INTO the scripts/
+folder (Add file > Upload files) and the file name must match exactly.
+USER NOTES: explanations in Banglish; user is a beginner; give one step at a time with exact clicks; always say CPU vs GPU.
 
 ## 7. How to resume in a new session
 Paste this file, then say which deliverable to continue. Run `python scripts/smoke_test.py` after
