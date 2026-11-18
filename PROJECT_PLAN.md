@@ -69,7 +69,7 @@ paper and report text in English. User is the author; AI-assisted writing must b
 |---|---|---|
 | 1 | Literature gap, novelty, formulation | done |
 | 2 | Folder structure, env, YAML config, checkpoint/resume, this file | done (code tested on CPU only) |
-| 3 | Dataset download, count check, cleaning, near-duplicate detection, group-aware split, EDA | DONE; split FROZEN on GitHub. Still open (small): dataset URL + licence, optional PlantVillage leaf-map check, dataset datasheet. History: Step A DONE on real data (scripts/d3_01_build_manifest.py). Step B1 (scripts/d3_02_near_duplicates.py) DONE on real data (ResNet50 embeddings, Kaggle T4). Step B2 v2 (scripts/d3_03_groups_and_split.py: capped groups + StratifiedGroupKFold + exact purge + leakage report + EDA) written/tested on synthetic only; next: run v2 on real data |
+| 3 | Dataset download, count check, cleaning, near-duplicate detection, group-aware split, EDA | DONE; split FROZEN on GitHub; dataset URL + licence recorded. Still open (small): optional PlantVillage leaf-map check, dataset datasheet. History: Step A DONE on real data (scripts/d3_01_build_manifest.py). Step B1 (scripts/d3_02_near_duplicates.py) DONE on real data (ResNet50 embeddings, Kaggle T4). Step B2 v2 (scripts/d3_03_groups_and_split.py: capped groups + StratifiedGroupKFold + exact purge + leakage report + EDA) written/tested on synthetic only; next: run v2 on real data |
 | 4 | Baseline classification notebook + scripts | NEXT (GPU needed; start with a short validation-only learning-rate check, then freeze the recipe) |
 | 5 | Segmentation + severity (annotation workflow) | pending |
 | 6 | Enhancement / robustness / low-data / resolution / lab-to-field configs + GPU estimates | pending |
@@ -176,7 +176,19 @@ component cap 100 (refined in steps of 0.005); StratifiedGroupKFold 40 folds, se
   then an exact PURGE over all pairs moves any val/test image with a >=0.90 near-copy in train (or any val image near a
   test image) to train until none remains (verified by assertion). Val/test end slightly below 15% (printed).
   Expected cost: images in chained regions end up in train. Report the final sizes and how many were moved.
-- Still open: dataset owner/URL + LICENCE; output of the GitHub leaf_grouping / leaf-map.json check (cell 2).
+
+### Dataset licence notes (all VERIFY; not legal advice; ask the supervisor/university before releasing anything)
+- CONFIRMED from the Kaggle dataset page (screenshot, user, 18 Nov 2026): kaggle.com/datasets/abdallahalidev/plantvillage-dataset, owner
+  "Abdallah Ali and 1 collaborator", updated 7 years ago, 2.18 GB, folders color/grayscale/segmented, page licence field = CC BY-NC-SA 4.0.
+  The dataset description on that page is the abstract of Hughes & Salathe (2015). Cite the Kaggle copy AND the original papers.
+- Other sources disagree: the original PlantVillage paper (Hughes & Salathe, arXiv:1511.08060) is summarised by a secondary site as CC BY-SA 3.0
+  with an extra clause that models trained on the data fall under the same licence (read the paper's own text); a Zenodo copy says CC BY-SA 3.0 US;
+  derived collections (Meta-Album, a Mendeley release) list CC0 for the "original data release". An uploader cannot relicense someone else's data.
+- Working rule: comply with the strictest combination: attribute (Hughes & Salathe 2015; Mohanty et al. 2016), non-commercial research use only,
+  share-alike for derivatives. Do NOT redistribute PlantVillage images in the repo (only split CSVs with file names and labels). Lesion masks derived
+  from PlantVillage images and released model weights must be checked against the share-alike clause before release (Deliverable 10).
+- PlantDoc, the second field dataset and the phone-image licence/consent: still to check.
+- Still open (partly answered above): dataset owner/URL + LICENCE; output of the GitHub leaf_grouping / leaf-map.json check (cell 2).
 
 
 ## 6c. Where we stopped (resume here) + practical Kaggle/GitHub lessons
