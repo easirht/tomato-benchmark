@@ -1,0 +1,218 @@
+{
+  "t0": 0.9,
+  "max_group": 100,
+  "step": 0.005,
+  "seed": 1234,
+  "folds": [
+    22,
+    9,
+    9
+  ],
+  "n_images": 18146,
+  "severed_edges": 12522,
+  "n_moved_by_purge": 2657,
+  "diagnostics": {
+    "plain_0.97": {
+      "n_groups": 18127,
+      "n_singletons": 18108,
+      "pct_images_in_multi_groups": 0.2,
+      "largest": 2,
+      "top5": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "p99_size": 1.0,
+      "groups_mixing_classes": 0
+    },
+    "plain_0.95": {
+      "n_groups": 17715,
+      "n_singletons": 17466,
+      "pct_images_in_multi_groups": 3.7,
+      "largest": 98,
+      "top5": [
+        98,
+        9,
+        8,
+        6,
+        6
+      ],
+      "p99_size": 2.0,
+      "groups_mixing_classes": 1
+    },
+    "plain_0.92": {
+      "n_groups": 14824,
+      "n_singletons": 14050,
+      "pct_images_in_multi_groups": 22.6,
+      "largest": 874,
+      "top5": [
+        874,
+        484,
+        51,
+        47,
+        34
+      ],
+      "p99_size": 4.0,
+      "groups_mixing_classes": 12
+    },
+    "plain_0.9": {
+      "n_groups": 10784,
+      "n_singletons": 10017,
+      "pct_images_in_multi_groups": 44.8,
+      "largest": 5830,
+      "top5": [
+        5830,
+        31,
+        24,
+        23,
+        22
+      ],
+      "p99_size": 4.0,
+      "groups_mixing_classes": 13
+    },
+    "plain_0.88": {
+      "n_groups": 6324,
+      "n_singletons": 5800,
+      "pct_images_in_multi_groups": 68.0,
+      "largest": 10877,
+      "top5": [
+        10877,
+        61,
+        24,
+        16,
+        13
+      ],
+      "p99_size": 4.0,
+      "groups_mixing_classes": 7
+    },
+    "refined": {
+      "n_groups": 13631,
+      "n_singletons": 12120,
+      "pct_images_in_multi_groups": 33.2,
+      "largest": 98,
+      "top5": [
+        98,
+        91,
+        73,
+        69,
+        59
+      ],
+      "p99_size": 7.0,
+      "groups_mixing_classes": 49
+    }
+  },
+  "leakage": {
+    "random split - val": {
+      "mean": 0.8897150158882141,
+      "p90": 0.932932835817337,
+      "pct_ge_T0": 39.41954445260837,
+      "pct_ge_0.88": 64.36443791329904
+    },
+    "random split - test": {
+      "mean": 0.8901612162590027,
+      "p90": 0.932954627275467,
+      "pct_ge_T0": 40.96252755326966,
+      "pct_ge_0.88": 63.960323291697286
+    },
+    "GROUP split  - val": {
+      "mean": 0.8674240112304688,
+      "p90": 0.8948826313018798,
+      "pct_ge_T0": 0.0,
+      "pct_ge_0.88": 37.668320340184266
+    },
+    "GROUP split  - test": {
+      "mean": 0.8673256039619446,
+      "p90": 0.8946098685264587,
+      "pct_ge_T0": 0.0,
+      "pct_ge_0.88": 38.05888767720829
+    }
+  },
+  "class_by_split": {
+    "train": {
+      "bacterial_spot": 1721,
+      "early_blight": 579,
+      "late_blight": 1132,
+      "leaf_mold": 552,
+      "septoria_leaf_spot": 1074,
+      "spider_mites": 1106,
+      "target_spot": 919,
+      "yellow_leaf_curl_virus": 3927,
+      "mosaic_virus": 280,
+      "healthy": 1283
+    },
+    "val": {
+      "bacterial_spot": 205,
+      "early_blight": 213,
+      "late_blight": 386,
+      "leaf_mold": 205,
+      "septoria_leaf_spot": 366,
+      "spider_mites": 293,
+      "target_spot": 249,
+      "yellow_leaf_curl_virus": 714,
+      "mosaic_virus": 38,
+      "healthy": 153
+    },
+    "test": {
+      "bacterial_spot": 201,
+      "early_blight": 208,
+      "late_blight": 383,
+      "leaf_mold": 195,
+      "septoria_leaf_spot": 331,
+      "spider_mites": 277,
+      "target_spot": 236,
+      "yellow_leaf_curl_virus": 716,
+      "mosaic_virus": 55,
+      "healthy": 149
+    },
+    "total": {
+      "bacterial_spot": 2127,
+      "early_blight": 1000,
+      "late_blight": 1901,
+      "leaf_mold": 952,
+      "septoria_leaf_spot": 1771,
+      "spider_mites": 1676,
+      "target_spot": 1404,
+      "yellow_leaf_curl_virus": 5357,
+      "mosaic_virus": 373,
+      "healthy": 1585
+    },
+    "train%": {
+      "bacterial_spot": 80.9,
+      "early_blight": 57.9,
+      "late_blight": 59.5,
+      "leaf_mold": 58.0,
+      "septoria_leaf_spot": 60.6,
+      "spider_mites": 66.0,
+      "target_spot": 65.5,
+      "yellow_leaf_curl_virus": 73.3,
+      "mosaic_virus": 75.1,
+      "healthy": 80.9
+    },
+    "val%": {
+      "bacterial_spot": 9.6,
+      "early_blight": 21.3,
+      "late_blight": 20.3,
+      "leaf_mold": 21.5,
+      "septoria_leaf_spot": 20.7,
+      "spider_mites": 17.5,
+      "target_spot": 17.7,
+      "yellow_leaf_curl_virus": 13.3,
+      "mosaic_virus": 10.2,
+      "healthy": 9.7
+    },
+    "test%": {
+      "bacterial_spot": 9.4,
+      "early_blight": 20.8,
+      "late_blight": 20.1,
+      "leaf_mold": 20.5,
+      "septoria_leaf_spot": 18.7,
+      "spider_mites": 16.5,
+      "target_spot": 16.8,
+      "yellow_leaf_curl_virus": 13.4,
+      "mosaic_virus": 14.7,
+      "healthy": 9.4
+    }
+  }
+}
