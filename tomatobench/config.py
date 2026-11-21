@@ -133,5 +133,35 @@ def iter_runs(cfg: dict, seeds_key: str = "seeds_main", models_key: str = "model
             c = copy.deepcopy(cfg)
             set_by_path(c, "model.name", m["name"])
             set_by_path(c, "model.family", m.get("family", "unknown"))
+            set_by_path(c, "model.tag", m.get("tag"))
             set_by_path(c, "run.seed", s)
             yield c
+
+
+def iter_queue(cfg: dict) -> Iterator[dict]:
+    """The list of runs of an experiment.
+
+    If the experiment config has a `queue` block ({models, seeds, lrs}) it is used (model names are looked up
+    in protocol.models_main / models_optional to get family and pretrained tag). Otherwise the full benchmark
+    grid is used: protocol.models_main x protocol.seeds_main. Order: model-major, then lr, then seed.
+    """
+    q = cfg.get("queue")
+    if not q:
+        yield from iter_runs(cfg)
+        return
+    pool = {m["name"]: m for m in (get_by_path(cfg, "protocol.models_main", []) +
+                                    get_by_path(cfg, "protocol.models_optional", []))}
+    seeds = q.get("seeds") or get_by_path(cfg, "protocol.seeds_main")
+    lrs = q.get("lrs") or [get_by_path(cfg, "train.lr")]
+    for name in q["models"]:
+        m = pool.get(name, {"name": name, "family": get_by_path(cfg, "model.family", "unknown"),
+                            "tag": get_by_path(cfg, "model.tag")})
+        for lr in lrs:
+            for s in seeds:
+                c = copy.deepcopy(cfg)
+                set_by_path(c, "model.name", m["name"])
+                set_by_path(c, "model.family", m.get("family", "unknown"))
+                set_by_path(c, "model.tag", m.get("tag"))
+                set_by_path(c, "train.lr", lr)
+                set_by_path(c, "run.seed", s)
+                yield c

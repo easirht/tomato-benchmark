@@ -1,10 +1,21 @@
-# Tiny debug config: use to check the pipeline end to end in a few minutes.
+# Tiny CPU debug config: synthetic data + a tiny CNN, no timm needed. Used by scripts/smoke_test_train.py.
 exp_name: smoke
+data:
+  image_size: 64
+model:
+  name: tiny_cnn
+  family: cnn
+  tag: null
+  pretrained: false
 train:
-  epochs: 2
+  lr: 0.003
+  epochs: 4
+  horizon_epochs: 4
+  warmup_epochs: 1
   batch_size: 16
-  early_stopping: {metric: val_macro_f1, patience: 2}
-protocol:
-  seeds_main: [42]
-  models_main:
-    - {name: resnet50, family: cnn}
+  num_workers: 0
+  amp: false
+  early_stopping: {metric: val_macro_f1, patience: 3, min_delta: 0.0001}
+queue:
+  models: [tiny_cnn]
+  seeds: [1, 2]

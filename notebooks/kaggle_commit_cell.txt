@@ -1,0 +1,20 @@
+%%bash
+# ^ this line MUST be the very first line of the Kaggle cell.
+# Settings: Accelerator = GPU T4 x2, Internet = on. Then Save Version > Save & Run All (Commit).
+# Between commit runs change only EXP: lr_check -> bg_test -> main_benchmark.
+set -e
+export EXP=lr_check
+cd /kaggle/working
+rm -rf tomato-benchmark
+git clone -q https://github.com/easirht/tomato-benchmark.git
+cd tomato-benchmark
+test -f splits/split_v2.csv || { echo "splits/split_v2.csv missing on GitHub"; exit 1; }
+pip install -q timm==1.0.11
+python scripts/check_env.py | head -20
+python scripts/smoke_test_train.py 2>&1 | tail -3
+CUDA_VISIBLE_DEVICES=0 python scripts/run_queue.py --exp $EXP --shard 0/2 --set train.num_workers=2 > /kaggle/working/log_gpu0.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python scripts/run_queue.py --exp $EXP --shard 1/2 --set train.num_workers=2 > /kaggle/working/log_gpu1.txt 2>&1 &
+wait
+echo "================ GPU0 log (last 40 lines) ================"; tail -40 /kaggle/working/log_gpu0.txt
+echo "================ GPU1 log (last 40 lines) ================"; tail -40 /kaggle/working/log_gpu1.txt
+python scripts/summarize_runs.py --exp $EXP || true

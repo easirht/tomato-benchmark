@@ -1,0 +1,15 @@
+# VALIDATION-ONLY learning-rate check. The test set is never evaluated here (eval.test: false).
+# Rule fixed BEFORE running: mean best-val-macro-F1 over the two models; pick the LR with the highest mean;
+# if two LRs are within 0.002, pick the smaller LR. Then freeze train.lr in base.yaml.
+# Seed 1000 is outside the benchmark seed list (42-46), so these runs never reappear in the benchmark.
+exp_name: lr_check
+train:
+  epochs: 6
+  horizon_epochs: 6
+  warmup_epochs: 1
+eval:
+  test: false
+queue:
+  models: [resnet50, deit_small_patch16_224]   # one CNN, one transformer
+  seeds: [1000]
+  lrs: [0.00005, 0.0001, 0.0002, 0.0005]

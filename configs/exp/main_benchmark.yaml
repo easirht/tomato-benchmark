@@ -1,2 +1,3 @@
-# Deliverable 4: 6 models x 5 seeds at 224px, full PlantVillage-tomato train split.
+# Deliverable 4/6: 6 models x 5 seeds at 224px on the frozen split. Uses train.lr from base.yaml
+# (frozen after the LR check). Test set evaluated ONCE per run.
 exp_name: main_benchmark

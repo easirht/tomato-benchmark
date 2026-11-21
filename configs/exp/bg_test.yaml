@@ -1,0 +1,13 @@
+# Background-only sanity test (PlantVillage background bias): the network sees ONLY four 32x32 corner patches
+# of each image; everything else is set to mid-gray. If it still classifies far above chance (majority class
+# is ~29% of the data, macro-F1 chance is ~0.1), the background carries class information.
+exp_name: bg_test
+data:
+  input_mask: corners
+train:
+  epochs: 8
+  horizon_epochs: 8
+  warmup_epochs: 1
+queue:
+  models: [resnet50]
+  seeds: [1000]
